@@ -20,7 +20,7 @@ Typical setup:
 ```env
 OPENAI_API_KEY=your-api-key-here
 MODEL=gpt-4.1-mini
-# OPENAI_API_ENDPOINT=https://your-compatible-endpoint/v1
+OPENAI_API_ENDPOINT=https://your-compatible-endpoint/v1
 ```
 
 In both scripts, environment variables are loaded early and then used to initialize the OpenAI client. This keeps credentials outside source code and supports endpoint/model switching without changing Python logic.
