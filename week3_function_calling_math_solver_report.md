@@ -25,32 +25,40 @@ OPENAI_API_ENDPOINT=https://your-compatible-endpoint/v1
 
 In both scripts, environment variables are loaded early and then used to initialize the OpenAI client. This keeps credentials outside source code and supports endpoint/model switching without changing Python logic.
 
-### 1.2 Output Differences: No-Tools vs Tools-Enabled
+### 1.2 Interactive Execution and the `rich` Terminal UI
 
-In the **no-tools** scenario:
+The script uses the `rich` library to create an interactive terminal UI. The user plays the role of the wolf natively typing prompts, while the LLM acts as one of the three little pigs.
 
-- The model can only generate text.
-- It may say something like “I will call for help,” but no real function executes.
-- No tool payload (`tool_calls`) is returned.
+When executed, a menu offers two scenarios:
+1. Scenario 1: Chat WITHOUT function calling (pig can only talk)
+2. Scenario 2: Chat WITH function calling (pig can call hunter)
 
-In the **tools-enabled** scenario:
+### 1.3 Output Differences: No-Tools vs Tools-Enabled
 
-- The same conversational context includes a declared tool schema (`call_hunter`).
-- When needed, the assistant response includes `tool_calls` with JSON arguments.
-- The host script executes the function and returns a concrete tool result to the model.
-- A second model call integrates the tool output into the final assistant message.
+In the **no-tools** scenario (Scenario 1):
+
+- The model can only generate text based on the conversation history.
+- It may say something like “I am calling the hunter,” but no real function executes.
+- No tool payload (`tool_calls`) is returned, keeping actions as mere narrative intent.
+
+In the **tools-enabled** scenario (Scenario 2):
+
+- The same conversational context includes a declared tool schema (`call_hunter`), which takes `urgency` (low/medium/high/emergency) and `message` as JSON arguments.
+- When needed, the assistant response suspends text generation and outputs `tool_calls` with JSON arguments (e.g., `{"urgency": "emergency", "message": "The wolf is trying to blow my house down!"}`).
+- The host script parses this payload, runs the python function `call_hunter()`, mapping the urgency to an actual outcome (e.g., "The hunter is sprinting to your location..."), and returns a concrete tool result.
+- A second model call integrates this tool output into the final assistant message.
 
 This demonstrates the practical difference between **narrative intent** and **executable action**.
 
-### 1.3 Why the Hunter Was Called Only Under Threat
+### 1.4 Why the Hunter Was Called Only Under Threat
 
-The model called the hunter only when threat language appeared because:
+The model calls the hunter only when threat language appears because:
 
-- The system prompt explicitly instructs the pig to use tools when in danger.
+- The system prompt explicitly instructs the pig: *"IMPORTANT: If you have access to tools and you are in danger, USE THEM! Call the hunter immediately if the wolf threatens you!"*
 - Threat cues such as “I am the wolf” and “I will blow your house” satisfy that condition.
 - In non-threatening dialog, the policy does not justify escalation, so no tool is called.
 
-In short, tool usage was not random; it was **policy-conditioned behavior** driven by prompt constraints and user context.
+In short, tool usage is not random; it is **policy-conditioned behavior** driven by prompt constraints and the user context.
 
 ---
 
@@ -58,32 +66,32 @@ In short, tool usage was not random; it was **policy-conditioned behavior** driv
 
 ### 2.1 Layman’s Explanation
 
-Function calling means the model can say:
+Function calling means the model can realize:
 
-> “I need this calculator/solver/plotter function to do the next step.”
+> “I need to use this specific external tool (like calling the hunter with a specific urgency, or using a math solver) to properly respond to the user's situation.”
 
-Instead of inventing everything in plain text, it asks the host app to run a real function with structured inputs.
+Instead of just inventing everything in plain text, it asks the host app to run a real function with structured, precise inputs.
 
 ### 2.2 Text-Only Response vs `tool_calls`
 
 - **Text-only response**: The assistant returns normal natural language content only.
-- **`tool_calls` response**: The assistant returns a request to run one or more tools, including:
-  - tool name
-  - JSON arguments
-  - tool call ID
+- **`tool_calls` response**: The assistant returns a payload requesting to run one or more tools, including:
+  - The exact tool name (e.g., `call_hunter`)
+  - The structured JSON arguments (e.g., `{"urgency": "high", "message": "Help!"}`)
+  - A unique tool call ID
 
-When `tool_calls` exists, the host program executes those calls and sends results back for a final answer.
+When a `tool_calls` payload exists, the host program effectively pauses the LLM, executes the local code, and sends the real-world results back for a final, informed answer.
 
 ### 2.3 Why the Host Program Stays in Control
 
 The Python host remains the controller for safety and reliability:
 
-- It decides which declared tools are actually executable.
-- It validates/decodes tool arguments.
-- It handles exceptions and converts failures into safe outputs.
+- It alone decides which declared tools are actually available and executable.
+- It validates/decodes tool arguments (e.g., ensuring `urgency` is one of the allowed enums).
+- It handles exceptions and converts failures into safe outputs injected back into the context.
 - It can reject unknown tools or malformed arguments.
 
-Therefore, the model can **request** actions, but it cannot independently execute arbitrary system operations.
+Therefore, the model can **request** actions based on its reasoning, but it cannot independently execute arbitrary system operations.
 
 ---
 
