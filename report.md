@@ -343,12 +343,3 @@ The strongest performance came from treating the model as an **orchestrator** ra
 - The hybrid design separates concerns: language reasoning in the model, mathematical correctness in specialized libraries.
 
 Educationally, this architecture is valuable because students can inspect each stage (request, tool call, tool output, final response), making agent behavior transparent rather than opaque.
-
----
-
-## Appendix: Suggested Screenshot/Artifact Slots
-
-- [INSERT_NO_TOOLS_CONVERSATION_SCREENSHOT_HERE]
-- [INSERT_TOOLS_ENABLED_CONVERSATION_SCREENSHOT_HERE]
-- [INSERT_TOOL_CALL_PAYLOAD_SCREENSHOT_HERE]
-- [INSERT_PLOT_IMAGE_HERE]
